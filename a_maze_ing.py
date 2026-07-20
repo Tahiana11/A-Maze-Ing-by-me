@@ -3,7 +3,7 @@ from display.mlx_view import Render
 
 
 def main() -> None:
-    maze = MazeGenerator(width=15, height=10)
+    maze = MazeGenerator(width=40, height=35)
     maze.generate()
     render = Render(maze.grid)
     render.run()
