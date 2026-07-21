@@ -2,9 +2,10 @@ import random
 
 
 class Cell:
-    __slots__ = ("walls", "visited")
+    __slots__ = ("walls", "visited", "is_pattern")
     def __init__(self) -> None:
         self.visited = False
+        self.is_pattern = False
         self.walls = {"N": True, "E": True, "S": True, "W": True}
 
 
@@ -15,6 +16,7 @@ class MazeGenerator:
         self.grid: list[list[Cell]] = [
             [Cell() for _ in range(width)] for _ in range(height)
         ]
+        self.blocked: set[tuple[int, int]] = set()
 
     def get_unvisited_neighbor(
         self, row: int, col: int
@@ -39,8 +41,13 @@ class MazeGenerator:
         return neighbors
 
     def generate(self) -> None:
-        row_current = random.randint(0, self.height - 1)
-        col_current = random.randint(0, self.width - 1)
+        self.pattern_forty_two()
+        while True:
+            row_current = random.randint(0, self.height - 1)
+            col_current = random.randint(0, self.width - 1)
+            if (row_current, col_current) not in self.blocked:
+                break
+
         random_cell = self.grid[row_current][col_current]
         random_cell.visited = True
 
@@ -65,4 +72,28 @@ class MazeGenerator:
                 stack.pop()
 
     def pattern_forty_two(self) -> None:
-        pass
+        pattern = [
+            "#....####",
+            "#.......#",
+            "#.......#",
+            "####.####",
+            "...#.#...",
+            "...#.#...",
+            "...#.####",
+        ]
+        pattern_h = len(pattern)
+        pattern_w = len(pattern[0])
+        if self.height < pattern_h or self.width < pattern_w:
+            print("Grid too small to display pattern '42'")
+            return
+
+        start_row = (self.height - pattern_h) // 2
+        start_col = (self.width - pattern_w) // 2
+
+        for row, line in enumerate(pattern):
+            for col, char in enumerate(line):
+                if char == "#":
+                    gr, gc = start_row + row, start_col + col
+                    self.grid[gr][gc].visited = True
+                    self.grid[gr][gc].is_pattern = True
+                    self.blocked.add((gr, gc))

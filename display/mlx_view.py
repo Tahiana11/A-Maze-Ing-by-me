@@ -4,8 +4,6 @@ from mazegen.generator import Cell, MazeGenerator
 import random
 
 
-WALL_THICKNESS = 1
-
 class Render:
     def __init__(
         self,
@@ -13,13 +11,14 @@ class Render:
         # width: int = 20,
         grid: list[list[Cell]],
         height_win: int = 1000,
-        width_win: int = 1000,
+        width_win: int = 800,
         wall_thickness: int = 1,
     ) -> None:
         self.mlx = Mlx()
         self.mlx_ptr = self.mlx.mlx_init()
         self.height_win = height_win
         self.width_win = width_win
+        self.wall_thickness = wall_thickness
         self.width = len(grid[0]) if grid else 0
         self.height = len(grid)
         self.cell_size = min(
@@ -39,7 +38,7 @@ class Render:
         # Récupérer le buffer de pixels
         self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(
             self.img_ptr)
-        self.wall_color = 0xFF000000
+        self.wall_color = self._random_color()
         self._display_cell()
 
     def _random_color(self) -> int:
@@ -66,8 +65,15 @@ class Render:
             for col in range(self.width):
                 x0 = col * self.cell_size
                 y0 = row * self.cell_size
+                cell = self.grid[row][col]
+                fill_color = (
+                    self.wall_color
+                    if getattr(cell, "is_pattern", False)
+                    else 0xFF000000
+                )
                 self._fill_cell(
-                    x0, x0 + self.cell_size - 1, y0, y0 + self.cell_size - 1, 0xFFECECEC)
+                    x0, x0 + self.cell_size - 1, y0, y0 + self.cell_size - 1, fill_color
+                )
 
         for row in range(self.height):
             for col in range(self.width):
@@ -79,16 +85,20 @@ class Render:
 
                 if cell.walls["N"]:
                     self._fill_cell(
-                        x0, x1, y0, y0 + WALL_THICKNESS - 1, self.wall_color)
+                        x0, x1, y0,
+                        y0 + self.wall_thickness - 1, self.wall_color)
                 if cell.walls["E"]:
                     self._fill_cell(
-                        x1 - WALL_THICKNESS + 1, x1, y0, y1, self.wall_color)
+                        x1 - self.wall_thickness + 1, x1, y0, y1,
+                        self.wall_color)
                 if cell.walls["S"]:
                     self._fill_cell(
-                        x0, x1, y1 - WALL_THICKNESS + 1, y1, self.wall_color)
+                        x0, x1, y1 - self.wall_thickness + 1, y1,
+                        self.wall_color)
                 if cell.walls["W"]:
                     self._fill_cell(
-                        x0, x0 + WALL_THICKNESS - 1, y0, y1, self.wall_color)
+                        x0, x0 + self.wall_thickness - 1, y0, y1,
+                        self.wall_color)
 
     def set_grid(self, grid: list[list[Cell]]) -> None:
         """Remplace la grille à afficher (fournie par un générateur externe)."""
