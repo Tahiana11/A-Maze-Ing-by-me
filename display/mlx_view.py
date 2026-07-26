@@ -7,11 +7,11 @@ import random
 class Render:
     def __init__(
         self,
-        # height: int = 15,
-        # width: int = 20,
+        entry: tuple[int, int],
+        exit: tuple[int, int],
         grid: list[list[Cell]],
-        height_win: int = 1000,
-        width_win: int = 800,
+        height_win: int = 600,
+        width_win: int = 600,
         wall_thickness: int = 1,
     ) -> None:
         self.mlx = Mlx()
@@ -21,6 +21,8 @@ class Render:
         self.wall_thickness = wall_thickness
         self.width = len(grid[0]) if grid else 0
         self.height = len(grid)
+        self.entry = entry
+        self.exit = exit
         self.cell_size = min(
             self.width_win // self.width if self.width else 0,
             self.height_win // self.height if self.height else 0,
@@ -39,6 +41,9 @@ class Render:
         self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(
             self.img_ptr)
         self.wall_color = self._random_color()
+        self.path_color = self._random_color()
+        self.path: list[tuple[int, int]] = []
+        self.show_path = False
         self._display_cell()
 
     def _random_color(self) -> int:
@@ -100,33 +105,80 @@ class Render:
                         x0, x0 + self.wall_thickness - 1, y0, y1,
                         self.wall_color)
 
+
+    def set_path(self, path: list[tuple[int, int]]) -> None:
+        """Enregistre le chemin (liste de (row, col)) a dessiner."""
+        self.path = path
+
     def set_grid(self, grid: list[list[Cell]]) -> None:
-        """Remplace la grille à afficher (fournie par un générateur externe)."""
+        """Remplace la grille a afficher (fournie par un générateur externe)."""
         self.grid = grid
+
+    def draw_entry_exit(self) -> None:
+        """Draw l'entre et le sortie
+        """
+        entry_exit: list[str] = ["entry", "exit"]
+        for e in entry_exit:
+            if e == "exit":
+                er, ec = self.exit
+            else:
+                er, ec = self.entry
+            mini = self.cell_size // 2
+            offset = (self.cell_size - mini) // 2
+            x = ec * self.cell_size + offset
+            y = er * self.cell_size + offset
+            self._fill_cell(
+                x,
+                x + mini -1,
+                y,
+                y + mini - 1,
+                self._random_color()
+            )
+
+    def draw_path(self) -> None:
+        """Dessin une petit carre au centre de chaque chemin"""
+        mini = self.cell_size // 5
+        offset = (self.cell_size - mini) // 2
+        for row, col in self.path:
+            x = self.cell_size * col + offset
+            y = self.cell_size * row + offset
+            self._fill_cell(x , x + mini - 1, y, y + mini - 1, self.path_color)
 
     def draw(self) -> None:
         self._display_cell()
+        if self.path and self.show_path:
+            self.draw_path()
+        self.draw_entry_exit()
         self.mlx.mlx_put_image_to_window(
             self.mlx_ptr, self.window, self.img_ptr, 0, 0)
 
     def regenerate(self) -> None:
         """Regenere une nouvelle maze"""
-        new_maze = MazeGenerator(self.width, self.height)
+        new_maze = MazeGenerator(self.width, self.height, self.entry, self.exit)
         new_maze.generate()
         self.grid = new_maze.grid
+        self.path = new_maze.solve()
         self.draw()
 
-    def leave_window(self, keycode: int, *args: Any) -> None:
-        """Quitte la fenêtre avec Échap (65307)"""
+    def on_key(self, keycode: int, *args: Any) -> None:
+        """Quitte la fenêtre avec Échap (65307)
+        regenere le maze avec r
+        changer de coleur avec c
+        afficher et ne pas afficher le chemin avec p"""
         if keycode == 65307:
             self.mlx.mlx_loop_exit(self.mlx_ptr)
 
-        if keycode == 99:
-            self.wall_color = self._random_color()
-            self.draw()
-
         if keycode == 114:
             self.regenerate()
+
+        if keycode == ord("c"):
+            self.wall_color = self._random_color()
+            self.path_color = self._random_color()
+            self.draw()
+
+        if keycode == ord('p'):
+            self.show_path = not self.show_path
+            self.draw()
 
     def expose(self, *args: Any) -> None:
         self.draw()
@@ -137,7 +189,7 @@ class Render:
 
     def run(self) -> None:
         self.mlx.mlx_expose_hook(self.window, self.expose, None)
-        self.mlx.mlx_key_hook(self.window, self.leave_window, None)
+        self.mlx.mlx_key_hook(self.window, self.on_key, None)
         self.mlx.mlx_hook(self.window, 33, 0, self.on_close, None)
         self.mlx.mlx_loop(self.mlx_ptr)
         self.mlx.mlx_destroy_image(self.mlx_ptr, self.img_ptr)
