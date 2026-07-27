@@ -15,11 +15,13 @@ class Render:
         height_win: int = 600,
         width_win: int = 600,
         wall_thickness: int = 1,
+        footer_height: int = 30
     ) -> None:
         self.mlx = Mlx()
         self.mlx_ptr = self.mlx.mlx_init()
         self.height_win = height_win
         self.width_win = width_win
+        self.footer_height = footer_height
         self.wall_thickness = wall_thickness
         self.width = len(grid[0]) if grid else 0
         self.height = len(grid)
@@ -31,11 +33,12 @@ class Render:
         )
         self.width_win = self.cell_size * self.width
         self.height_win = self.cell_size * self.height
+        self.win_total_height = self.height_win + self.footer_height
         self.window = self.mlx.mlx_new_window(
-            self.mlx_ptr, self.width_win, self.height_win, "A-Maze-Ing")
+            self.mlx_ptr, self.width_win, self.win_total_height, "A-Maze-Ing")
         self.grid = grid
         self.img_ptr = self.mlx.mlx_new_image(
-            self.mlx_ptr, self.width_win, self.height_win)
+            self.mlx_ptr, self.width_win, self.win_total_height)
         self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(
             self.img_ptr)
         self.wall_color = self._random_color()
@@ -43,7 +46,7 @@ class Render:
         self.pattern_color = self._random_color()
         self.path = MazeSolver(maze).solve_bfs() if maze is not None else []
         self._maze = maze
-        self._gen_steps = None
+        self._gen_steps: Any = None
         self._active = False
         self._speed = 0
         self._counter = 0
@@ -63,7 +66,7 @@ class Render:
     ) -> None:
         """Calcule et remplit le buffer de l'image pixel par pixel"""
         x0, x1 = max(0, x0),  min(self.width_win - 1, x1)
-        y0, y1 = max(0, y0), min(self.height_win - 1, y1)
+        y0, y1 = max(0, y0), min(self.win_total_height - 1, y1)
         for y in range(y0, y1 + 1):
             row_off = y * self.sl
             for x in range(x0, x1 + 1):
@@ -143,6 +146,19 @@ class Render:
                 self._random_color()
             )
 
+    def _draw_footer(
+        self,
+        text: str = "1:regen; 2:path; 3:color; 4:quit; 5 or 6:animate"
+    ) -> None:
+        y0 = self.height_win
+        y1 = self.win_total_height - 1
+        self._fill_cell(0, self.width_win - 1, y0, y1, 0xFF000000)
+        self.mlx.mlx_string_put(
+            self.mlx_ptr, self.window,
+            10, y0 + self.footer_height // 10,
+            0xFFFFFFFF, text
+        )
+
     def draw_path(self) -> None:
         """Dessin une petit carre au centre de chaque chemin"""
         mini = self.cell_size // 5
@@ -160,6 +176,7 @@ class Render:
         self.draw_entry_exit()
         self.mlx.mlx_put_image_to_window(
             self.mlx_ptr, self.window, self.img_ptr, 0, 0)
+        self._draw_footer()
 
     def regenerate(self) -> None:
         """Regenere une nouvelle maze"""
@@ -174,9 +191,10 @@ class Render:
         self.grid = new_maze.grid
         self.path = MazeSolver(new_maze).solve_bfs()
         self.generation_animation()
+        self.path_animation()
         self.draw()
 
-    def generation_animation(self, speed: int = 1) -> None:
+    def generation_animation(self, speed: int = 0) -> None:
         new_maze = MazeGenerator(
             self.width, self.height, self.entry, self.exit
         )
@@ -191,7 +209,7 @@ class Render:
         self._counter = 0
         self._active = True
 
-    def path_animation(self, speed: int = 1) -> None:
+    def path_animation(self, speed: int = 0) -> None:
         if self._maze is None:
             return
         if not self.path:
@@ -235,27 +253,27 @@ class Render:
         self.draw()
 
     def on_key(self, keycode: int, *args: Any) -> None:
-        """Quitte la fenêtre avec Échap (65307)
-        regenere le maze avec r
-        changer de coleur avec c
-        afficher et ne pas afficher le chemin avec p"""
-        if keycode == 65307:
+        """Quitte la fenêtre avec 4
+        regenere le maze avec 1
+        changer de coleur avec 3
+        afficher et ne pas afficher le chemin avec 2"""
+        if keycode == ord('4'):
             self.mlx.mlx_loop_exit(self.mlx_ptr)
 
-        if keycode == ord('r'):
+        if keycode == ord('1'):
             self.regenerate()
 
-        if keycode == ord('g'):
-            self.generation_animation()
-
-        if keycode == ord('a'):
+        if keycode == ord('5'):
             self.path_animation()
 
-        if keycode == ord('p'):
+        if keycode == ord('6'):
+            self.generation_animation()
+
+        if keycode == ord('2'):
             self.show_path = not self.show_path
             self.draw()
 
-        if keycode == ord("c"):
+        if keycode == ord("3"):
             self.wall_color = self._random_color()
             self.path_color = self._random_color()
             self.pattern_color = self._random_color()

@@ -1,4 +1,5 @@
 from typing import Generator
+import os
 import random
 
 
@@ -17,7 +18,8 @@ class MazeGenerator:
         width: int,
         height: int,
         entry: tuple[int, int],
-        exit: tuple[int, int]
+        exit: tuple[int, int],
+        perfect: bool = True
     ) -> None:
         self.width = width
         self.height = height
