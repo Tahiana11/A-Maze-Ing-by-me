@@ -1,9 +1,10 @@
-from collections import deque
+from typing import Generator
 import random
 
 
 class Cell:
     __slots__ = ("walls", "visited", "is_pattern")
+
     def __init__(self) -> None:
         self.visited = False
         self.is_pattern = False
@@ -11,7 +12,13 @@ class Cell:
 
 
 class MazeGenerator:
-    def __init__(self, width: int, height: int, entry: tuple[int, int], exit: tuple[int, int]) -> None:
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        entry: tuple[int, int],
+        exit: tuple[int, int]
+    ) -> None:
         self.width = width
         self.height = height
         self.grid: list[list[Cell]] = [
@@ -45,9 +52,22 @@ class MazeGenerator:
 
     def valid_position(self, pos: tuple[int, int]) -> bool:
         row, col = pos
-        return (0 <= row < self.height and 0 <= col < self.width and pos in self.blocked)
+        return (
+            0 <= row < self.height
+            and 0 <= col < self.width and pos in self.blocked
+        )
 
-    def generate(self) -> None:
+    def generate_dfs(
+        self
+    ) -> Generator[tuple[int, int, int, int], None, None]:
+        """Version pas à pas du DFS.
+
+        C'est un générateur : chaque `next()` fait avancer l'algorithme
+        d'une seule étape (un mur cassé) et yield le mouvement effectué
+        sous la forme (row, col, r_neighbor, c_neighbor). Ça permet à
+        l'affichage d'animer la génération au lieu de tout calculer
+        d'un coup.
+        """
         self.pattern_forty_two()
         if self.valid_position(self.entry):
             raise ValueError("Invalid entry...")
@@ -78,20 +98,34 @@ class MazeGenerator:
 
                 cell_neighbor.visited = True
                 stack.append((r_neighbor, c_neighbor))
+                yield (row, col, r_neighbor, c_neighbor)
 
             else:
                 stack.pop()
 
     def pattern_forty_two(self) -> None:
-        pattern = [
-            "#....####",
-            "#.......#",
-            "#.......#",
-            "####.####",
-            "...#.#...",
-            "...#.#...",
-            "...#.####",
+        digit_4 = [
+            "#...",
+            "#...",
+            "#...",
+            "####",
+            "...#",
+            "...#",
+            "...#",
         ]
+        digit_2 = [
+            "####",
+            "...#",
+            "...#",
+            "####",
+            "#...",
+            "#...",
+            "####",
+        ]
+
+        gap = "." * (2 if self.width % 2 == 0 else 1)
+        pattern = [row4 + gap + row2 for row4, row2 in zip(digit_4, digit_2)]
+
         pattern_h = len(pattern)
         pattern_w = len(pattern[0])
         if self.height < pattern_h or self.width < pattern_w:
@@ -108,53 +142,3 @@ class MazeGenerator:
                     self.grid[gr][gc].visited = True
                     self.grid[gr][gc].is_pattern = True
                     self.blocked.add((gr, gc))
-
-
-    def solve(self) -> list[tuple[int, int]]:
-        """retourne le chemin le plus court entry -> exit
-        renvoie une liste vide si aucun chemin n'exit
-        """
-        directions = [
-            ("N", -1, 0),
-            ("S", 1, 0),
-            ("E", 0, 1),
-            ("W", 0, -1)
-        ]
-        start = self.entry
-        goal = self.exit
-        queue = deque([start])
-        came_from: dict[
-            tuple[int, int], tuple[int, int] | None
-        ] = {start: None}
-
-        while queue:
-            row, col = queue.popleft()
-            if (row, col) == goal:
-                return self._reconstruct_path(came_from, goal)
-            current_cell = self.grid[row][col]
-            for direction, d_row, d_col in directions:
-                if current_cell.walls[direction]:
-                    continue
-
-                nr, nc = d_row + row, d_col + col
-                if not (0 <= nr < self.height and 0 <= nc < self.width):
-                    continue
-
-                if (nr, nc) in came_from:
-                    continue
-
-                came_from[(nr, nc)] = (row, col)
-                queue.append((nr, nc))
-
-        return []
-
-    @staticmethod
-    def _reconstruct_path(
-        came_from: dict[tuple[int, int], tuple[int, int] | None],
-        goal: tuple[int, int]
-    ) -> list[tuple[int, int]]:
-        path = [goal]
-        while came_from[path[-1]] is not None:
-            path.append(came_from[path[-1]])
-        path.reverse()
-        return path

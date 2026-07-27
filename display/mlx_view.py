@@ -1,6 +1,7 @@
 from typing import Any
 from mlx import Mlx
 from mazegen.generator import Cell, MazeGenerator
+from mazegen.solver import MazeSolver
 import random
 
 
@@ -10,6 +11,7 @@ class Render:
         entry: tuple[int, int],
         exit: tuple[int, int],
         grid: list[list[Cell]],
+        maze: MazeGenerator | None = None,
         height_win: int = 600,
         width_win: int = 600,
         wall_thickness: int = 1,
@@ -32,17 +34,20 @@ class Render:
         self.window = self.mlx.mlx_new_window(
             self.mlx_ptr, self.width_win, self.height_win, "A-Maze-Ing")
         self.grid = grid
-
-        # Créer l'image
         self.img_ptr = self.mlx.mlx_new_image(
             self.mlx_ptr, self.width_win, self.height_win)
-
-        # Récupérer le buffer de pixels
         self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(
             self.img_ptr)
         self.wall_color = self._random_color()
         self.path_color = self._random_color()
-        self.path: list[tuple[int, int]] = []
+        self.pattern_color = self._random_color()
+        self.path = MazeSolver(maze).solve_bfs() if maze is not None else []
+        self._maze = maze
+        self._gen_steps = None
+        self._active = False
+        self._speed = 0
+        self._counter = 0
+        self._path_index = 1
         self.show_path = False
         self._display_cell()
 
@@ -72,12 +77,15 @@ class Render:
                 y0 = row * self.cell_size
                 cell = self.grid[row][col]
                 fill_color = (
-                    self.wall_color
+                    self.pattern_color
                     if getattr(cell, "is_pattern", False)
                     else 0xFF000000
                 )
                 self._fill_cell(
-                    x0, x0 + self.cell_size - 1, y0, y0 + self.cell_size - 1, fill_color
+                    x0,
+                    x0 + self.cell_size - 1,
+                    y0, y0 + self.cell_size - 1,
+                    fill_color
                 )
 
         for row in range(self.height):
@@ -105,13 +113,13 @@ class Render:
                         x0, x0 + self.wall_thickness - 1, y0, y1,
                         self.wall_color)
 
-
     def set_path(self, path: list[tuple[int, int]]) -> None:
         """Enregistre le chemin (liste de (row, col)) a dessiner."""
         self.path = path
 
     def set_grid(self, grid: list[list[Cell]]) -> None:
-        """Remplace la grille a afficher (fournie par un générateur externe)."""
+        """Remplace la grille a afficher
+        (fournie par un générateur externe)."""
         self.grid = grid
 
     def draw_entry_exit(self) -> None:
@@ -129,7 +137,7 @@ class Render:
             y = er * self.cell_size + offset
             self._fill_cell(
                 x,
-                x + mini -1,
+                x + mini - 1,
                 y,
                 y + mini - 1,
                 self._random_color()
@@ -139,10 +147,11 @@ class Render:
         """Dessin une petit carre au centre de chaque chemin"""
         mini = self.cell_size // 5
         offset = (self.cell_size - mini) // 2
-        for row, col in self.path:
+        reveal = self._path_index if self._active else len(self.path)
+        for row, col in self.path[:reveal]:
             x = self.cell_size * col + offset
             y = self.cell_size * row + offset
-            self._fill_cell(x , x + mini - 1, y, y + mini - 1, self.path_color)
+            self._fill_cell(x, x + mini - 1, y, y + mini - 1, self.path_color)
 
     def draw(self) -> None:
         self._display_cell()
@@ -154,10 +163,75 @@ class Render:
 
     def regenerate(self) -> None:
         """Regenere une nouvelle maze"""
-        new_maze = MazeGenerator(self.width, self.height, self.entry, self.exit)
-        new_maze.generate()
+        new_maze = MazeGenerator(
+            self.width,
+            self.height,
+            self.entry,
+            self.exit
+        )
+        new_maze.generate_dfs()
+        self._maze = new_maze
         self.grid = new_maze.grid
-        self.path = new_maze.solve()
+        self.path = MazeSolver(new_maze).solve_bfs()
+        self.generation_animation()
+        self.draw()
+
+    def generation_animation(self, speed: int = 1) -> None:
+        new_maze = MazeGenerator(
+            self.width, self.height, self.entry, self.exit
+        )
+        self._maze = new_maze
+        self.grid = new_maze.grid
+        self._gen_steps = new_maze.generate_dfs()
+
+        self.path = []
+        self._path_index = 0
+        self.show_path = False
+        self._speed = max(0, speed)
+        self._counter = 0
+        self._active = True
+
+    def path_animation(self, speed: int = 1) -> None:
+        if self._maze is None:
+            return
+        if not self.path:
+            self.path = MazeSolver(self._maze).solve_bfs()
+
+        self._path_index = 0
+        self.show_path = True
+        self._speed = max(0, speed)
+        self._counter = 0
+        self._active = True
+
+    def _advance_generation(self) -> None:
+        try:
+            next(self._gen_steps)
+        except StopIteration:
+            self._gen_steps = None
+            self._active = False
+            if self._maze is not None:
+                self.path = MazeSolver(self._maze).solve_bfs()
+
+    def _advance_path(self) -> None:
+        if self._path_index < len(self.path):
+            self._path_index += 1
+        if self._path_index >= len(self.path):
+            self._active = False
+
+    def loop_hook(self, *args: Any) -> None:
+        if not self._active:
+            return
+
+        self._counter += 1
+        if self._counter < self._speed:
+            return
+        self._counter = 0
+
+        if self._gen_steps is not None:
+            self._advance_generation()
+        elif self.show_path:
+            self._advance_path()
+
         self.draw()
 
     def on_key(self, keycode: int, *args: Any) -> None:
@@ -168,16 +242,23 @@ class Render:
         if keycode == 65307:
             self.mlx.mlx_loop_exit(self.mlx_ptr)
 
-        if keycode == 114:
+        if keycode == ord('r'):
             self.regenerate()
+
+        if keycode == ord('g'):
+            self.generation_animation()
+
+        if keycode == ord('a'):
+            self.path_animation()
+
+        if keycode == ord('p'):
+            self.show_path = not self.show_path
+            self.draw()
 
         if keycode == ord("c"):
             self.wall_color = self._random_color()
             self.path_color = self._random_color()
-            self.draw()
-
-        if keycode == ord('p'):
-            self.show_path = not self.show_path
+            self.pattern_color = self._random_color()
             self.draw()
 
     def expose(self, *args: Any) -> None:
@@ -191,6 +272,7 @@ class Render:
         self.mlx.mlx_expose_hook(self.window, self.expose, None)
         self.mlx.mlx_key_hook(self.window, self.on_key, None)
         self.mlx.mlx_hook(self.window, 33, 0, self.on_close, None)
+        self.mlx.mlx_loop_hook(self.mlx_ptr, self.loop_hook, None)
         self.mlx.mlx_loop(self.mlx_ptr)
         self.mlx.mlx_destroy_image(self.mlx_ptr, self.img_ptr)
         self.mlx.mlx_destroy_window(self.mlx_ptr, self.window)
