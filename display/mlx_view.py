@@ -1,7 +1,10 @@
 from typing import Any
 from mlx import Mlx
 from mazegen.generator import Cell, MazeGenerator
+from mazegen.imperfect_generator import ImperfectMazeGenerator
 from mazegen.solver import MazeSolver
+from utils.config_parser import Config
+from utils.maze_writer import MazeWriter
 import random
 
 
@@ -11,6 +14,7 @@ class Render:
         entry: tuple[int, int],
         exit: tuple[int, int],
         grid: list[list[Cell]],
+        config: Config,
         maze: MazeGenerator | None = None,
         height_win: int = 600,
         width_win: int = 600,
@@ -19,6 +23,7 @@ class Render:
     ) -> None:
         self.mlx = Mlx()
         self.mlx_ptr = self.mlx.mlx_init()
+        self.config = config
         self.height_win = height_win
         self.width_win = width_win
         self.footer_height = footer_height
@@ -178,29 +183,43 @@ class Render:
             self.mlx_ptr, self.window, self.img_ptr, 0, 0)
         self._draw_footer()
 
+    def _new_maze_and_steps(self) -> tuple[MazeGenerator, Any]:
+        """Crée un nouveau labyrinthe (parfait ou imparfait selon
+        `config.perfect`) et renvoie (maze, générateur d'étapes) prêt
+        à être consommé pas à pas par l'animation."""
+        if self.config.perfect:
+            maze: MazeGenerator = MazeGenerator(
+                self.width, self.height, self.entry, self.exit
+            )
+            steps = maze.generate_dfs()
+        else:
+            maze = ImperfectMazeGenerator(
+                self.width, self.height, self.entry, self.exit
+            )
+            steps = maze.generate_imperfect()
+
+        return maze, steps
+
+    def _write_maze_file(self) -> None:
+        """Met à jour le fichier de sortie (ex: maze.txt) avec le
+        labyrinthe et le chemin actuellement générés."""
+        if self._maze is None:
+            return
+        MazeWriter(self._maze, self.path).write(self.config.output_file)
+
     def regenerate(self) -> None:
-        """Regenere une nouvelle maze"""
-        new_maze = MazeGenerator(
-            self.width,
-            self.height,
-            self.entry,
-            self.exit
-        )
-        new_maze.generate_dfs()
-        self._maze = new_maze
-        self.grid = new_maze.grid
-        self.path = MazeSolver(new_maze).solve_bfs()
+        """Regenere une nouvelle maze (parfaite ou non selon la
+        config) et relance son animation. maze.txt sera mis à jour
+        automatiquement une fois la génération terminée."""
         self.generation_animation()
         self.path_animation()
         self.draw()
 
-    def generation_animation(self, speed: int = 0) -> None:
-        new_maze = MazeGenerator(
-            self.width, self.height, self.entry, self.exit
-        )
+    def generation_animation(self, speed: int = 1) -> None:
+        new_maze, steps = self._new_maze_and_steps()
         self._maze = new_maze
         self.grid = new_maze.grid
-        self._gen_steps = new_maze.generate_dfs()
+        self._gen_steps = steps
 
         self.path = []
         self._path_index = 0
@@ -209,7 +228,7 @@ class Render:
         self._counter = 0
         self._active = True
 
-    def path_animation(self, speed: int = 0) -> None:
+    def path_animation(self, speed: int = 1) -> None:
         if self._maze is None:
             return
         if not self.path:
@@ -221,14 +240,17 @@ class Render:
         self._counter = 0
         self._active = True
 
-    def _advance_generation(self) -> None:
-        try:
-            next(self._gen_steps)
-        except StopIteration:
-            self._gen_steps = None
-            self._active = False
-            if self._maze is not None:
-                self.path = MazeSolver(self._maze).solve_bfs()
+    def _advance_generation(self, steps: int = 10) -> None:
+        for _ in range(steps):
+            try:
+                next(self._gen_steps)
+            except StopIteration:
+                self._gen_steps = None
+                self._active = False
+                if self._maze is not None:
+                    self.path = MazeSolver(self._maze).solve_bfs()
+                    self._write_maze_file()
+                break
 
     def _advance_path(self) -> None:
         if self._path_index < len(self.path):

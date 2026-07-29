@@ -1,5 +1,4 @@
 from typing import Generator
-import os
 import random
 
 
@@ -62,14 +61,6 @@ class MazeGenerator:
     def generate_dfs(
         self
     ) -> Generator[tuple[int, int, int, int], None, None]:
-        """Version pas à pas du DFS.
-
-        C'est un générateur : chaque `next()` fait avancer l'algorithme
-        d'une seule étape (un mur cassé) et yield le mouvement effectué
-        sous la forme (row, col, r_neighbor, c_neighbor). Ça permet à
-        l'affichage d'animer la génération au lieu de tout calculer
-        d'un coup.
-        """
         self.pattern_forty_two()
         if self.valid_position(self.entry):
             raise ValueError("Invalid entry...")
