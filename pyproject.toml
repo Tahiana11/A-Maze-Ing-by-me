@@ -1,0 +1,14 @@
+[project]
+name = "mazegen"
+version = "1.0.0"
+description = "A standalone generic Maze Generator"
+authors = [
+    { name = "nramalan", email = "nramalan@student.42antananarivo.mg" },
+    { name = "safidian", email = "safidian@student.42antananarivo.mg" },
+]
+readme = "README.md"
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["uv_build>=0.9.22,<0.10.0"]
+build-backend = "uv_build"

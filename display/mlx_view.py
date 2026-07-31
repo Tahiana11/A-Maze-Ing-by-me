@@ -240,7 +240,7 @@ class Render:
         self._counter = 0
         self._active = True
 
-    def _advance_generation(self, steps: int = 10) -> None:
+    def _advance_generation(self, steps: int = 8) -> None:
         for _ in range(steps):
             try:
                 next(self._gen_steps)
@@ -309,11 +309,14 @@ class Render:
         self.mlx.mlx_loop_exit(self.mlx_ptr)
 
     def run(self) -> None:
-        self.mlx.mlx_expose_hook(self.window, self.expose, None)
-        self.mlx.mlx_key_hook(self.window, self.on_key, None)
-        self.mlx.mlx_hook(self.window, 33, 0, self.on_close, None)
-        self.mlx.mlx_loop_hook(self.mlx_ptr, self.loop_hook, None)
-        self.mlx.mlx_loop(self.mlx_ptr)
-        self.mlx.mlx_destroy_image(self.mlx_ptr, self.img_ptr)
-        self.mlx.mlx_destroy_window(self.mlx_ptr, self.window)
-        self.mlx.mlx_release(self.mlx_ptr)
+        try:
+            self.mlx.mlx_expose_hook(self.window, self.expose, None)
+            self.mlx.mlx_key_hook(self.window, self.on_key, None)
+            self.mlx.mlx_hook(self.window, 33, 0, self.on_close, None)
+            self.mlx.mlx_loop_hook(self.mlx_ptr, self.loop_hook, None)
+            self.mlx.mlx_loop(self.mlx_ptr)
+            self.mlx.mlx_destroy_image(self.mlx_ptr, self.img_ptr)
+            self.mlx.mlx_destroy_window(self.mlx_ptr, self.window)
+            self.mlx.mlx_release(self.mlx_ptr)
+        except Exception:
+            return

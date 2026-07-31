@@ -78,12 +78,12 @@ def parse_config(path: str = "config.txt") -> Config:
             " positive or strictly greater than or equal to 11."
         )
 
-    if width > 50 and height > 50:
-        raise ConfigError(
-            "For a height and width greater than 50, "
-            "the cells are very small because the 'mlx'"
-            " size is the default. The mlx size needs to be large."
-        )
+    # if width > 50 and height > 50:
+    #     raise ConfigError(
+    #         "For a height and width greater than 50, "
+    #         "the cells are very small because the 'mlx'"
+    #         " size is the default. The mlx size needs to be large."
+    #     )
 
     entry = parse_coord(values["ENTRY"], "ENTRY")
     exit_ = parse_coord(values["EXIT"], "EXIT")
