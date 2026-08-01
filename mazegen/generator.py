@@ -18,7 +18,8 @@ class MazeGenerator:
         height: int,
         entry: tuple[int, int],
         exit: tuple[int, int],
-        perfect: bool = True
+        perfect: bool = True,
+        seed: int | None = None
     ) -> None:
         self.width = width
         self.height = height
@@ -28,6 +29,9 @@ class MazeGenerator:
         self.entry = entry
         self.exit = exit
         self.blocked: set[tuple[int, int]] = set()
+        self.seed = seed
+        if seed is not None:
+            random.seed(seed)
 
     def get_unvisited_neighbor(
         self, row: int, col: int

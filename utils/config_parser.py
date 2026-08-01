@@ -16,6 +16,7 @@ class Config:
     exit: tuple[int, int]
     output_file: str
     perfect: bool = False
+    seed: int | None = None
 
 
 def parse_coord(raw: str, key: str) -> tuple[int, int]:
@@ -96,6 +97,16 @@ def parse_config(path: str = "config.txt") -> Config:
     perfect_raw = values.get("PERFECT", values.get("PREFECT", "False"))
     perfect = parse_bool(perfect_raw, "PERFECT")
 
+    seed: int | None = None
+    seed_raw = values.get("SEED")
+    if seed_raw:
+        try:
+            seed = int(seed_raw)
+        except ValueError as e:
+            raise ConfigError(
+                f"SEED must be an integer (received: {seed_raw!r})"
+            ) from e
+
     return Config(
         width=width,
         height=height,
@@ -103,4 +114,5 @@ def parse_config(path: str = "config.txt") -> Config:
         exit=exit_,
         output_file=values["OUTPUT_FILE"],
         perfect=perfect,
+        seed=seed,
     )

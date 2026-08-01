@@ -18,6 +18,7 @@ def build_maze(config: Config) -> tuple[MazeGenerator, list[tuple[int, int]]]:
             config.height,
             config.entry,
             config.exit,
+            seed=config.seed,
         )
         for _ in maze.generate_dfs():
             pass
@@ -27,6 +28,7 @@ def build_maze(config: Config) -> tuple[MazeGenerator, list[tuple[int, int]]]:
             config.height,
             config.entry,
             config.exit,
+            seed=config.seed,
         )
         for _ in maze.generate_imperfect():
             pass

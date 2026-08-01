@@ -1,6 +1,5 @@
 import random
 from typing import Generator
-
 from .generator import MazeGenerator
 
 
@@ -13,8 +12,9 @@ class ImperfectMazeGenerator(MazeGenerator):
         exit: tuple[int, int],
         walls: float = 0.05,
         rooms_2x2: int = 3,
+        seed: int | None = None,
     ) -> None:
-        super().__init__(width, height, entry, exit, perfect=False)
+        super().__init__(width, height, entry, exit, perfect=False, seed=seed)
         if not 0.0 <= walls <= 1.0:
             raise ValueError("the walls must be between 0 and 1")
         if rooms_2x2 < 0:

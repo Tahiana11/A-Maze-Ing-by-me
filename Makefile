@@ -1,31 +1,19 @@
-SRCS_DIR := src
-MAZEGEN_DIR := $(SRCS_DIR)/mazegen
-EXCEPTIONS_DIR := $(SRCS_DIR)/exception
-GRAPHIC_DIR := $(SRCS_DIR)/graphic
+MAZEGEN_DIR := mazegen
 
-SRCS_ALGORITHM := __init__.py algorithm_generator.py \
-                backtracking.py prim.py maze_resolver.py
-SRCS_MAZEGEN_EXCEPTION := config_exception.py maze_exception.py
-SRCS_SERVICE := __init__.py config_parser.py generator_utils.py file_generator.py
-SRCS_EXCEPTION := __init__.py args_exception.py mlx_exception.py
-SRCS_GRAPHIC := __init__.py mlx_utils.py mlx_window.py ui_manager.py maze_renderer.py \
-                ui/mlx_component.py ui/mlx_button.py
+SRCS_MAZEGEN := __init__.py generator.py imperfect_generator.py solver.py
 
-SRCS := $(addprefix $(MAZEGEN_DIR)/algorithm/, $(SRCS_ALGORITHM)) \
-    $(addprefix $(MAZEGEN_DIR)/exception/, $(SRCS_MAZEGEN_EXCEPTION)) \
-    $(addprefix $(MAZEGEN_DIR)/service/, $(SRCS_SERVICE)) \
-    $(addprefix $(EXCEPTIONS_DIR)/, $(SRCS_EXCEPTION)) \
-    $(addprefix $(GRAPHIC_DIR)/, $(SRCS_GRAPHIC)) \
-    $(MAZEGEN_DIR)/maze_generator.py \
-    $(SRCS_DIR)/maze_app.py \
-    $(SRCS_DIR)/__init__.py \
-    a_maze_ing.py
+WHEEL_SRCS := $(addprefix $(MAZEGEN_DIR)/, $(SRCS_MAZEGEN)) \
+    pyproject.toml \
+    README.md
+
+SRCS := $(WHEEL_SRCS)
 
 VENV := .venv
 VENV_BIN := @$(VENV)/bin
 
 PYTHON := $(VENV_BIN)/python
 PIP := $(VENV_BIN)/pip
+UV := $(VENV_BIN)/uv
 PDB := $(PYTHON) -m pdb
 FLAKE8 := $(VENV_BIN)/flake8
 MYPY := $(VENV_BIN)/mypy
@@ -41,16 +29,16 @@ NAME := mazegen-1.0.0-py3-none-any.whl
 install:
 	@echo "Creating virtual environment and installing dependencies"
 	python3 -m venv $(VENV)
-	. $(VENV)/bin/activate && pip install --upgrade pip
+	. $(VENV)/bin/activate && pip install --upgrade pip uv
 	. $(VENV)/bin/activate && if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 	. $(VENV)/bin/activate && if [ -f lib/mlx-2.2-py3-none-any.whl ]; then pip install lib/mlx-2.2-py3-none-any.whl; else echo "Warning: lib/mlx-2.2-py3-none-any.whl not found, skipping local install."; fi
 
 .PHONY: run
-run: $(VENV)
+run: pip-install
 	$(PYTHON) a_maze_ing.py config.txt
 
 .PHONY: debug
-debug: $(VENV)
+debug: pip-install
 	$(PDB) a_maze_ing.py config.txt
 
 .PHONY: clean
@@ -59,9 +47,10 @@ clean:
 	@find . -type d -name "__pycache__" -exec rm -rf {} +
 	@find . -type d -name ".mypy_cache" -exec rm -rf {} +
 	@rm -rf .mypy_cache .pytest_cache
-	@rm -rf src/mazegen.egg-info
+	@rm -rf mazegen.egg-info dist
 	@rm -rf .venv
 	@rm -f maze.txt
+	@rm -f $(NAME) mazegen-1.0.0.tar.gz
 
 .PHONY: lint
 lint: $(VENV)
@@ -77,14 +66,17 @@ lint-strict: $(VENV)
 	$(FLAKE8) .
 	$(MYPY) . --strict
 
+.PHONY: pip-install
+pip-install: $(NAME)
+	@echo "Installing $(NAME) via pip"
+	$(PIP) install --force-reinstall $(NAME)
+
 #----------------------------------------------
 # Other Commands
 #----------------------------------------------
-$(NAME): $(VENV) $(SRCS)
-	@echo "Building project"
-	$(PYTHON) -m build
-	@cp dist/$(NAME) .
-	@cp dist/mazegen-1.0.0.tar.gz .
+$(NAME): $(VENV) $(WHEEL_SRCS)
+	@echo "Building mazegen wheel (generator, imperfect_generator, solver)"
+	$(UV) build --wheel -o .
 	@rm -rf dist
 
 #----------------------------------------------
