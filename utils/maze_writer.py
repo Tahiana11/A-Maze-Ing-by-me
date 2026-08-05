@@ -7,7 +7,7 @@ _DIRECTION: dict[tuple[int, int], str] = {
     (-1, 0): "N",
     (1, 0): "S",
     (0, 1): "E",
-    (0, -1): "O",
+    (0, -1): "W",
 }
 
 

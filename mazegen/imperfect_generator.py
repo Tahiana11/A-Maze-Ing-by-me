@@ -23,7 +23,7 @@ class ImperfectMazeGenerator(MazeGenerator):
         width: int,
         height: int,
         entry: tuple[int, int],
-        exit: tuple[int, int],
+        _exit: tuple[int, int],
         walls: float = 0.05,
         rooms_2x2: int = 3,
         seed: int | None = None,
@@ -34,7 +34,7 @@ class ImperfectMazeGenerator(MazeGenerator):
             width: Number of columns in the grid.
             height: Number of rows in the grid.
             entry: Entry point of the maze as ``(row, col)``.
-            exit: Exit point of the maze as ``(row, col)``.
+            _exit: Exit point of the maze as ``(row, col)``.
             walls: Fraction of removable walls (0.0 to 1.0) to knock
                 down after DFS generation in order to create loops.
             rooms_2x2: Number of 2x2 open rooms to carve into the maze.
@@ -45,7 +45,7 @@ class ImperfectMazeGenerator(MazeGenerator):
             ValueError: If ``walls`` is not between 0.0 and 1.0, or if
                 ``rooms_2x2`` is negative.
         """
-        super().__init__(width, height, entry, exit, perfect=False, seed=seed)
+        super().__init__(width, height, entry, _exit, seed=seed)
         if not 0.0 <= walls <= 1.0:
             raise ValueError("the walls must be between 0 and 1")
         if rooms_2x2 < 0:

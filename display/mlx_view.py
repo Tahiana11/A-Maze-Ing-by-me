@@ -46,7 +46,7 @@ class Render:
     def __init__(
         self,
         entry: tuple[int, int],
-        exit: tuple[int, int],
+        _exit: tuple[int, int],
         grid: list[list[Cell]],
         config: Config,
         maze: MazeGenerator | None = None,
@@ -58,7 +58,7 @@ class Render:
         """Initialize the MLX window and precompute display parameters.
         Args:
             entry: Entry point of the maze as ``(row, col)``.
-            exit: Exit point of the maze as ``(row, col)``.
+            _exit: Exit point of the maze as ``(row, col)``.
             grid: Two-dimensional grid of `Cell` objects to display.
             config: Maze configuration, used when regenerating mazes.
             maze: Optional maze instance used to compute the initial
@@ -82,7 +82,7 @@ class Render:
         self.width = len(grid[0]) if grid else 0
         self.height = len(grid)
         self.entry = entry
-        self.exit = exit
+        self.exit = _exit
         self.cell_size = min(
             self.width_win // self.width if self.width else 0,
             self.height_win // self.height if self.height else 0,

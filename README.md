@@ -196,7 +196,6 @@ maze = MazeGenerator(
     height=10,
     entry=(0, 0),
     exit=(9, 9),
-    perfect=True,
     seed=42,
 )
 

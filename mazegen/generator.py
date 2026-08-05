@@ -33,7 +33,7 @@ class MazeGenerator:
         height (int): Number of rows in the grid.
         grid (list[list[Cell]]): Two-dimensional grid of `Cell` objects.
         entry (tuple[int, int]): Entry point of the maze as ``(row, col)``.
-        exit (tuple[int, int]): Exit point of the maze as ``(row, col)``.
+        _exit (tuple[int, int]): Exit point of the maze as ``(row, col)``.
         blocked (set[tuple[int, int]]): Set of ``(row, col)`` coordinates
             that are blocked (e.g. by the decorative pattern) and cannot
             be visited by the generation algorithm.
@@ -46,8 +46,7 @@ class MazeGenerator:
         width: int,
         height: int,
         entry: tuple[int, int],
-        exit: tuple[int, int],
-        perfect: bool = True,
+        _exit: tuple[int, int],
         seed: int | None = None,
     ) -> None:
         """Initialize the maze grid and its generation parameters.
@@ -56,7 +55,7 @@ class MazeGenerator:
             width: Number of columns in the grid.
             height: Number of rows in the grid.
             entry: Entry point of the maze as ``(row, col)``.
-            exit: Exit point of the maze as ``(row, col)``.
+            _exit: Exit point of the maze as ``(row, col)``.
             perfect: Whether the maze should be "perfect" (no loops).
                 Kept for compatibility with subclasses; not used
                 directly by this class beyond being stored implicitly
@@ -71,7 +70,7 @@ class MazeGenerator:
             [Cell() for _ in range(width)] for _ in range(height)
         ]
         self.entry = entry
-        self.exit = exit
+        self.exit = _exit
         self.blocked: set[tuple[int, int]] = set()
         self.seed = seed
         if seed is not None:
