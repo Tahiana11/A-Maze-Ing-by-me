@@ -7,10 +7,24 @@ from display.mlx_view import Render
 
 
 def build_maze(config: Config) -> tuple[MazeGenerator, list[tuple[int, int]]]:
-    """Génère le labyrinthe et son chemin résolu à partir de la config.
+    """Build a maze and solve it based on the given configuration.
 
-    Si `config.perfect` est False, on utilise `ImperfectMazeGenerator`
-    (labyrinthe avec des boucles) au lieu du `MazeGenerator` classique.
+    If ``config.perfect`` is ``False``, an :class:`ImperfectMazeGenerator`
+    (a maze containing loops) is used instead of the standard
+    :class:`MazeGenerator`.
+
+    Args:
+        config: Parsed configuration describing the maze dimensions,
+            entry/exit points, seed, and whether it should be perfect.
+
+    Returns:
+        A tuple ``(maze, path)`` where ``maze`` is the generated maze
+        instance and ``path`` is the list of ``(row, col)`` coordinates
+        forming the shortest path from entry to exit.
+
+    Raises:
+        ValueError: If the configured entry or exit position is
+            invalid (e.g. it falls on a blocked cell).
     """
     if config.perfect:
         maze: MazeGenerator = MazeGenerator(
@@ -38,6 +52,19 @@ def build_maze(config: Config) -> tuple[MazeGenerator, list[tuple[int, int]]]:
 
 
 def main() -> None:
+    """Entry point: load the configuration, build and render the maze.
+
+    Reads ``config.txt``, generates the maze and its solution, writes
+    the result to the configured output file, and then opens the
+    graphical window (via :class:`display.mlx_view.Render`) to display
+    the generation animation and the solved path.
+
+    Any configuration error or invalid maze parameters are caught and
+    reported to standard output instead of raising.
+
+    Returns:
+        None
+    """
     try:
         config = parse_config("config.txt")
     except ConfigError as e:

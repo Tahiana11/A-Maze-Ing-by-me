@@ -3,15 +3,44 @@ import random
 
 
 class Cell:
+    """Represents a single cell of the maze grid.
+
+    Attributes:
+        walls (dict[str, bool]): Presence of a wall in each of the four
+            cardinal directions (``"N"``, ``"E"``, ``"S"``, ``"W"``).
+            ``True`` means the wall is present, ``False`` means it has
+            been carved away.
+        visited (bool): Whether the cell has already been visited by
+            the generation algorithm.
+        is_pattern (bool): Whether the cell belongs to the decorative
+            "42" pattern carved into the grid.
+    """
+
     __slots__ = ("walls", "visited", "is_pattern")
 
     def __init__(self) -> None:
+        """Initialize a new cell with all four walls standing."""
         self.visited = False
         self.is_pattern = False
         self.walls = {"N": True, "E": True, "S": True, "W": True}
 
 
 class MazeGenerator:
+    """Generates a perfect maze (no loops) using a depth-first search.
+
+    Attributes:
+        width (int): Number of columns in the grid.
+        height (int): Number of rows in the grid.
+        grid (list[list[Cell]]): Two-dimensional grid of `Cell` objects.
+        entry (tuple[int, int]): Entry point of the maze as ``(row, col)``.
+        exit (tuple[int, int]): Exit point of the maze as ``(row, col)``.
+        blocked (set[tuple[int, int]]): Set of ``(row, col)`` coordinates
+            that are blocked (e.g. by the decorative pattern) and cannot
+            be visited by the generation algorithm.
+        seed (int | None): Optional seed used to make maze generation
+            reproducible.
+    """
+
     def __init__(
         self,
         width: int,
@@ -19,8 +48,23 @@ class MazeGenerator:
         entry: tuple[int, int],
         exit: tuple[int, int],
         perfect: bool = True,
-        seed: int | None = None
+        seed: int | None = None,
     ) -> None:
+        """Initialize the maze grid and its generation parameters.
+
+        Args:
+            width: Number of columns in the grid.
+            height: Number of rows in the grid.
+            entry: Entry point of the maze as ``(row, col)``.
+            exit: Exit point of the maze as ``(row, col)``.
+            perfect: Whether the maze should be "perfect" (no loops).
+                Kept for compatibility with subclasses; not used
+                directly by this class beyond being stored implicitly
+                through the subclass behavior.
+            seed: Optional seed forwarded to :func:`random.seed` to make
+                the generation reproducible. If ``None``, the global
+                random state is left untouched.
+        """
         self.width = width
         self.height = height
         self.grid: list[list[Cell]] = [
@@ -36,6 +80,19 @@ class MazeGenerator:
     def get_unvisited_neighbor(
         self, row: int, col: int
     ) -> list[tuple[str, int, int]]:
+        """List the unvisited neighbors of a given cell.
+
+        Args:
+            row: Row index of the reference cell.
+            col: Column index of the reference cell.
+
+        Returns:
+            A list of tuples ``(direction, neighbor_row, neighbor_col)``
+            for each in-bounds neighbor that has not yet been visited,
+            where ``direction`` is one of ``"N"``, ``"S"``, ``"W"``,
+            ``"E"`` indicating the direction from the reference cell to
+            the neighbor.
+        """
         neighbors = []
         directions = [
             ("N", -1, 0),
@@ -56,15 +113,43 @@ class MazeGenerator:
         return neighbors
 
     def valid_position(self, pos: tuple[int, int]) -> bool:
+        """Check whether a position is in-bounds and blocked.
+            Despite its name, this method returns ``True`` only when
+            the position lies within the grid **and** is present in
+            ``self.blocked``. It is used to reject an entry/exit point
+            that falls on a blocked cell.
+
+        Args:
+            pos: Position to check as ``(row, col)``.
+
+        Returns:
+            ``True`` if the position is within the grid bounds and is
+            part of ``self.blocked``, ``False`` otherwise.
+        """
         row, col = pos
         return (
-            0 <= row < self.height
-            and 0 <= col < self.width and pos in self.blocked
+            0 <= row < self.height and
+            0 <= col < self.width and
+            pos in self.blocked
         )
 
-    def generate_dfs(
-        self
-    ) -> Generator[tuple[int, int, int, int], None, None]:
+    def generate_dfs(self) -> Generator[tuple[int, int, int, int], None, None]:
+        """Generate a perfect maze using iterative depth-first search.
+
+        Carves the decorative "42" pattern first, then performs a
+        randomized DFS from a random unblocked starting cell, removing
+        walls between the current cell and a randomly chosen unvisited
+        neighbor at each step.
+
+        Yields:
+            Tuples ``(row, col, neighbor_row, neighbor_col)`` describing
+            each wall removal performed during generation, useful for
+            step-by-step animation.
+
+        Raises:
+            ValueError: If the configured entry or exit position lies
+                on a blocked cell.
+        """
         self.pattern_forty_two()
         if self.valid_position(self.entry):
             raise ValueError("Invalid entry...")
@@ -101,6 +186,18 @@ class MazeGenerator:
                 stack.pop()
 
     def pattern_forty_two(self) -> None:
+        """ '42' digit pattern into the grid.
+
+        Marks the cells forming the pattern as visited, tags them with
+        ``is_pattern = True`` and adds their coordinates to
+        ``self.blocked`` so the maze generation algorithm treats them
+        as unavailable. If the grid is too small to fit the pattern,
+        a message is printed and the method returns without modifying
+        the grid.
+
+        Returns:
+            None
+        """
         digit_4 = [
             "#...",
             "#...",

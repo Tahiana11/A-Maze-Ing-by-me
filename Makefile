@@ -1,7 +1,8 @@
 MAZEGEN_DIR := mazegen
 
 SRCS_MAZEGEN := __init__.py generator.py imperfect_generator.py solver.py
-
+SRCS_UTILS := __init__.py config_parser.py maze_writer.py
+SRCS_DISPLAY := mlx_view.py
 WHEEL_SRCS := $(addprefix $(MAZEGEN_DIR)/, $(SRCS_MAZEGEN)) \
     pyproject.toml \
     README.md
@@ -19,8 +20,13 @@ FLAKE8 := $(VENV_BIN)/flake8
 MYPY := $(VENV_BIN)/mypy
 
 NAME := mazegen-1.0.0-py3-none-any.whl
+WHEEL_DIR := lib
+WHEEL := $(WHEEL_DIR)/$(NAME)
 
-.DEFAULT_GOAL := $(NAME)
+TARBALL_NAME := mazegen.tar.gz
+TARBALL := $(WHEEL_DIR)/$(TARBALL_NAME)
+
+.DEFAULT_GOAL := $(WHEEL)
 
 #----------------------------------------------
 # Main Commands
@@ -50,34 +56,41 @@ clean:
 	@rm -rf mazegen.egg-info dist
 	@rm -rf .venv
 	@rm -f maze.txt
-	@rm -f $(NAME) mazegen-1.0.0.tar.gz
 
 .PHONY: lint
 lint: $(VENV)
 	@echo "Check Project Types"
-	$(FLAKE8) .
-	$(MYPY) . --warn-return-any --warn-unused-ignores \
+	$(FLAKE8) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py
+	$(MYPY) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py --warn-return-any --warn-unused-ignores \
 			--ignore-missing-imports --disallow-untyped-defs \
 			--check-untyped-defs
 
 .PHONY: lint-strict
 lint-strict: $(VENV)
 	@echo "Check Project Types Strict Mode"
-	$(FLAKE8) .
-	$(MYPY) . --strict
-
+	$(FLAKE8) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py
+	$(MYPY) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py --strict
 .PHONY: pip-install
-pip-install: $(NAME)
+pip-install: $(WHEEL)
 	@echo "Installing $(NAME) via pip"
-	$(PIP) install --force-reinstall $(NAME)
+	$(PIP) install --force-reinstall $(WHEEL)
+
+.PHONY: tarball
+tarball: $(TARBALL)
 
 #----------------------------------------------
 # Other Commands
 #----------------------------------------------
-$(NAME): $(VENV) $(WHEEL_SRCS)
+$(WHEEL): $(VENV) $(WHEEL_SRCS)
 	@echo "Building mazegen wheel (generator, imperfect_generator, solver)"
-	$(UV) build --wheel -o .
-	@rm -rf dist
+	@mkdir -p $(WHEEL_DIR)
+	$(UV) build --wheel -o $(WHEEL_DIR)
+	@rm -rf $(WHEEL_DIR)/.gitignore
+
+$(TARBALL): $(addprefix $(MAZEGEN_DIR)/, $(SRCS_MAZEGEN))
+	@echo "Archiving $(MAZEGEN_DIR)/ into $(TARBALL)"
+	@mkdir -p $(WHEEL_DIR)
+	tar -czf $(TARBALL) --exclude='__pycache__' $(MAZEGEN_DIR)
 
 #----------------------------------------------
 # Dependencies
