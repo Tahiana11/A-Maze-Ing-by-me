@@ -196,7 +196,7 @@ maze = MazeGenerator(
     height=10,
     entry=(0, 0),
     exit=(9, 9),
-    seed=42,
+    seed=42
 )
 
 # generate_dfs() is a generator: consume it fully to build the maze
@@ -222,7 +222,7 @@ imperfect_maze = ImperfectMazeGenerator(
     exit=(9, 9),
     walls=0.1,      # ratio of extra walls removed after the perfect maze pass
     rooms_2x2=2,    # number of 2x2 open rooms to carve
-    seed=42,
+    seed=42
 )
 
 for _ in imperfect_maze.generate_imperfect():

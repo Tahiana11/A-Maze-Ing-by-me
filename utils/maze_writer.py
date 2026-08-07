@@ -67,7 +67,8 @@ def path_to_directions(path: list[tuple[int, int]]) -> str:
         direction = _DIRECTION.get(delta)
         if direction is None:
             raise ValueError(
-                f"Invalid move between {(row_a, col_a)} " f"and {(row_b, col_b)}"
+                f"Invalid move between {(row_a, col_a)} "
+                f"and {(row_b, col_b)}"
             )
         directions.append(direction)
     return "".join(directions)
@@ -145,7 +146,9 @@ class MazeWriter:
 
 
 def write_maze(
-    maze: MazeGenerator, output_file: str, path: list[tuple[int, int]] | None = None
+    maze: MazeGenerator,
+    output_file: str,
+    path: list[tuple[int, int]] | None = None
 ) -> None:
     """Serialize and write a maze to a file in a single call.
 

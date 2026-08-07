@@ -58,7 +58,8 @@ def parse_coord(raw: str, key: str) -> tuple[int, int]:
     try:
         x, y = (int(p.strip()) for p in parts)
     except ValueError as e:
-        raise ConfigError(f"{key} must contain " f"integers (received: {raw!r})") from e
+        raise ConfigError(f"{key} must contain "
+                          f"integers (received: {raw!r})") from e
     return (y, x)
 
 
@@ -119,12 +120,15 @@ def parse_config(path: str = "config.txt") -> Config:
         raise ConfigError(f"Configuration file not found: {path}")
 
     values: dict[str, str] = {}
-    for line_no, line in enumerate(file_path.read_text().splitlines(), start=1):
+    for line_no, line in enumerate(
+        file_path.read_text().splitlines(), start=1
+    ):
         line = line.strip()
         if not line or line.startswith("#"):
             continue
         if "=" not in line:
-            raise ConfigError(f"Invalid line {line_no} (expected KEY=VALUE):{line!r}")
+            raise ConfigError(f"Invalid line {line_no}"
+                              f"(expected KEY=VALUE):{line!r}")
         key, _, value = line.partition("=")
         values[key.strip().upper()] = value.strip()
 
@@ -145,11 +149,10 @@ def parse_config(path: str = "config.txt") -> Config:
         )
 
     if width > 50 and height > 50:
-        raise ConfigError(
-            "For a height and width greater than 50, "
-            "the cells are very small because the 'mlx'"
-            " size is the default. The mlx size needs to be large."
-        )
+        raise ConfigError("For a height and width greater than 50,"
+                          "the cells are very small because the 'mlx'"
+                          " window size is the default size."
+                          " The mlx window size must be larger.")
 
     entry = parse_coord(values["ENTRY"], "ENTRY")
     exit_ = parse_coord(values["EXIT"], "EXIT")
@@ -159,7 +162,8 @@ def parse_config(path: str = "config.txt") -> Config:
             raise ConfigError(
                 f"{name} ({col},{row}) " f"is off the grid {width}x{height}"
             )
-
+    if values.get("PERFECT") is None:
+        raise ConfigError("Missing key(s) in config.txt: PERFECT")
     perfect_raw = values.get("PERFECT", values.get("PERFECT", "False"))
     perfect = parse_bool(perfect_raw, "PERFECT")
 

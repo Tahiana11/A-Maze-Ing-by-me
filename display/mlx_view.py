@@ -97,7 +97,8 @@ class Render:
         self.img_ptr = self.mlx.mlx_new_image(
             self.mlx_ptr, self.width_win, self.win_total_height
         )
-        self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(self.img_ptr)
+        self.data, self.bpp, self.sl, _ = self.mlx.mlx_get_data_addr(
+            self.img_ptr)
         self.wall_color = self._random_color()
         self.path_color = self._random_color()
         self.pattern_color = self._random_color()
@@ -138,7 +139,12 @@ class Render:
 
         return (0xFF << 24) | (r << 16) | (g << 8) | b
 
-    def _fill_cell(self, x0: int, x1: int, y0: int, y1: int, color: int) -> None:
+    def _fill_cell(
+            self,
+            x0: int,
+            x1: int,
+            y0: int,
+            y1: int, color: int) -> None:
         """Fill a rectangular pixel region of the image buffer with a color.
 
         Coordinates are clamped to the image bounds before filling.
@@ -160,7 +166,8 @@ class Render:
                 row_off = y * self.sl
                 for x in range(x0, x1 + 1):
                     offset = row_off + x * (self.bpp // 8)
-                    self.data[offset : offset + 4] = color.to_bytes(4, "little")
+                    self.data[offset: offset + 4] = color.to_bytes(
+                        4, "little")
 
         except KeyboardInterrupt:
             os._exit(1)
@@ -182,7 +189,8 @@ class Render:
                     else 0xFF000000
                 )
                 self._fill_cell(
-                    x0, x0 + self.cell_size - 1, y0, y0 + self.cell_size - 1, fill_color
+                    x0, x0 + self.cell_size - 1,
+                    y0, y0 + self.cell_size - 1, fill_color
                 )
 
         for row in range(self.height):
@@ -195,19 +203,24 @@ class Render:
 
                 if cell.walls["N"]:
                     self._fill_cell(
-                        x0, x1, y0, y0 + self.wall_thickness - 1, self.wall_color
+                        x0, x1, y0,
+                        y0 + self.wall_thickness - 1,
+                        self.wall_color
                     )
                 if cell.walls["E"]:
                     self._fill_cell(
-                        x1 - self.wall_thickness + 1, x1, y0, y1, self.wall_color
+                        x1 - self.wall_thickness + 1,
+                        x1, y0, y1, self.wall_color
                     )
                 if cell.walls["S"]:
                     self._fill_cell(
-                        x0, x1, y1 - self.wall_thickness + 1, y1, self.wall_color
+                        x0, x1, y1 - self.wall_thickness + 1,
+                        y1, self.wall_color
                     )
                 if cell.walls["W"]:
                     self._fill_cell(
-                        x0, x0 + self.wall_thickness - 1, y0, y1, self.wall_color
+                        x0, x0 + self.wall_thickness - 1,
+                        y0, y1, self.wall_color
                     )
 
     def set_path(self, path: list[tuple[int, int]]) -> None:
@@ -250,7 +263,9 @@ class Render:
             offset = (self.cell_size - mini) // 2
             x = ec * self.cell_size + offset
             y = er * self.cell_size + offset
-            self._fill_cell(x, x + mini - 1, y, y + mini - 1, self._random_color())
+            self._fill_cell(x,
+                            x + mini - 1, y,
+                            y + mini - 1, self._random_color())
 
     def _draw_footer(
         self, text: str = "1:regen; 2:path; 3:color; 4:quit; 5 or 6:animate"
@@ -303,7 +318,8 @@ class Render:
         if self.path and self.show_path:
             self.draw_path()
         self.draw_entry_exit()
-        self.mlx.mlx_put_image_to_window(self.mlx_ptr, self.window, self.img_ptr, 0, 0)
+        self.mlx.mlx_put_image_to_window(self.mlx_ptr,
+                                         self.window, self.img_ptr, 0, 0)
         self._draw_footer()
 
     def _new_maze_and_steps(self) -> tuple[MazeGenerator, Any]:

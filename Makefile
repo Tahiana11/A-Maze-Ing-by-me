@@ -1,12 +1,17 @@
 MAZEGEN_DIR := mazegen
-
+UTILS_DIR := utils
+DISPLAY_DIR := display
+MAIN_SRC := a_maze_ing.py
 SRCS_MAZEGEN := __init__.py generator.py imperfect_generator.py solver.py
-SRCS_UTILS := __init__.py config_parser.py maze_writer.py
+SRCS_UTILS := config_parser.py maze_writer.py
 SRCS_DISPLAY := mlx_view.py
 WHEEL_SRCS := $(addprefix $(MAZEGEN_DIR)/, $(SRCS_MAZEGEN)) \
     pyproject.toml \
     README.md
-
+LINT_SRCS := $(MAIN_SRC) \
+    $(addprefix $(DISPLAY_DIR)/, $(SRCS_DISPLAY)) \
+    $(addprefix $(MAZEGEN_DIR)/, $(SRCS_MAZEGEN)) \
+    $(addprefix $(UTILS_DIR)/, $(SRCS_UTILS))
 SRCS := $(WHEEL_SRCS)
 
 VENV := .venv
@@ -60,16 +65,19 @@ clean:
 .PHONY: lint
 lint: $(VENV)
 	@echo "Check Project Types"
-	$(FLAKE8) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py
-	$(MYPY) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py --warn-return-any --warn-unused-ignores \
+	$(FLAKE8) $(LINT_SRCS)
+	$(MYPY) $(LINT_SRCS) --warn-return-any --warn-unused-ignores \
 			--ignore-missing-imports --disallow-untyped-defs \
-			--check-untyped-defs
+			--check-untyped-defs \
+			--explicit-package-bases
 
 .PHONY: lint-strict
 lint-strict: $(VENV)
 	@echo "Check Project Types Strict Mode"
-	$(FLAKE8) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py
-	$(MYPY) $(MAZEGEN_DIR) $(UTILS_DIR) $(DISPLAY_DIR) a_maze_ing.py --strict
+	$(FLAKE8) $(LINT_SRCS)
+	$(MYPY) $(LINT_SRCS) --explicit-package-bases \
+	--strict
+
 .PHONY: pip-install
 pip-install: $(WHEEL)
 	@echo "Installing $(NAME) via pip"
